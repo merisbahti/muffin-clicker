@@ -22,6 +22,9 @@
 			<li aria-current={$page.url.pathname === '/about' ? 'page' : undefined}>
 				<a href="/about">About</a>
 			</li>
+			<li>
+				<a href="/monster-farmer">Monster Farmer</a>
+			</li>
 			<li aria-current={$page.url.pathname === '/markdown-editor' ? 'page' : undefined}>
 				<a href="/markdown-editor">Markdown Editor</a>
 			</li>

@@ -36,6 +36,7 @@
   },
   "type": "module",
   "dependencies": {
-    "marked": "^11.1.0"
+    "marked": "^11.1.0",
+    "remeda": "^1.33.0"
   }
 }
