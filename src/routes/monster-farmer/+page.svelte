@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { notificationsStore } from '$lib/components/notifications.svelte';
+	import type { PageData } from '../$types';
+
 	import Toast from '$lib/components/toast.svelte';
 	import {
 		getCountAtTime,
@@ -7,24 +9,38 @@
 		type FullState,
 		nonClickEventTypes,
 		getCost,
-		addEvent
+		AddEventResponseSchema
 	} from '../../model/farmerState';
 	import * as R from 'remeda';
-
 	const getCurrentTimestamp = () => new Date().getTime();
 
 	let events: FullState = $state([]);
+
+	$effect(() => {
+		const fn = async () =>
+			await fetch('/api/events')
+				.then((x) => x.json())
+				.then((x) => {
+					events = x;
+				});
+		fn();
+	});
 
 	let timer = $state(getCurrentTimestamp());
 
 	setInterval(() => {
 		timer = getCurrentTimestamp();
-	}, 100);
+	}, 25);
 
 	const totalCurrentCount = $derived(Math.floor(getCountAtTime(events, timer)));
 
-	const registerEvent = (eventType: EventType) => {
-		const result = addEvent(events, { type: eventType, timestamp: getCurrentTimestamp() });
+	const registerEvent = async (eventType: EventType) => {
+		const result = await fetch('/api/events', {
+			method: 'PUT',
+			body: JSON.stringify({ eventType: eventType })
+		})
+			.then((x) => x.json())
+			.then(AddEventResponseSchema.parseAsync);
 
 		switch (result.type) {
 			case 'success':
