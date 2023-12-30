@@ -13,8 +13,6 @@
 	let offset = $state(0);
 	let selected = $state([]);
 
-	$effect(() => console.log(count));
-
 	displayed_count.subscribe((n) => {
 		offset = modulo(n ?? 0, 1);
 	});
