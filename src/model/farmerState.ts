@@ -58,15 +58,6 @@ export const addEvent = (
 	return { type: 'success', newState: [...state, event] };
 };
 
-// export const validateEvents = (state: FullState, currentTime: number): number => {
-// 	return state.reduce((currentValue, { type, timestamp }) => {
-// 		switch (type) {
-// 			case 'click':
-// 				return getCountAtTime();
-// 		}
-// 	}, 0);
-// };
-
 export const getCosts = (state: FullState): { [type in NonClickEventType]: number } => {
 	const counts = R.mapValues(
 		R.groupBy(state, (event) => event.type),
