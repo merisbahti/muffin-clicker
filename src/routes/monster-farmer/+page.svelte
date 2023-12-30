@@ -9,7 +9,6 @@
 		type FullState,
 		nonClickEventTypes,
 		getCost,
-		addEvent,
 		AddEventResponseSchema
 	} from '../../model/farmerState';
 	import * as R from 'remeda';
@@ -22,7 +21,6 @@
 			await fetch('/api/events')
 				.then((x) => x.json())
 				.then((x) => {
-					console.log(x);
 					events = x;
 				});
 		fn();
@@ -32,7 +30,7 @@
 
 	setInterval(() => {
 		timer = getCurrentTimestamp();
-	}, 100);
+	}, 25);
 
 	const totalCurrentCount = $derived(Math.floor(getCountAtTime(events, timer)));
 
