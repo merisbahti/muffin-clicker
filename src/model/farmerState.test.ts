@@ -24,7 +24,7 @@ test('grandma clicks are correctly counted', () => {
 	const fullState: FullState = [{ type: 'grandma', timestamp: 0 }];
 	const result = getProductionAtTime(fullState, 10000);
 
-	expect(result).toBe(1);
+	expect(result).toBe(10);
 });
 
 test('double grandma clicks are correctly counted', () => {
@@ -34,19 +34,19 @@ test('double grandma clicks are correctly counted', () => {
 	];
 	const result = getProductionAtTime(fullState, 10000);
 
-	expect(result).toBe(2);
+	expect(result).toBe(20);
 });
 
 test('grandma + factory clicks are correctly counted', () => {
 	const fullState: FullState = [
-		{ type: 'grandma', timestamp: 0 },
-		{ type: 'factory', timestamp: 1000 }
+		{ type: 'cursor', timestamp: 0 },
+		{ type: 'grandma', timestamp: 1000 }
 	];
 
 	expect(getProductionAtTime(fullState, 0)).toBe(0);
 	expect(getProductionAtTime(fullState, 1000)).toBe(0.1);
-	expect(getProductionAtTime(fullState, 1500)).toBe(0.4);
-	expect(getProductionAtTime(fullState, 15000)).toBe(8.5);
+	expect(getProductionAtTime(fullState, 1500)).toBe(0.65);
+	expect(getProductionAtTime(fullState, 15000)).toBe(15.5);
 });
 
 test('base costs are as expected', () => {
@@ -54,51 +54,74 @@ test('base costs are as expected', () => {
 	const result = getCosts(fullState);
 
 	expect(result).toEqual({
-		grandma: 15,
-		factory: 100
+		cursor: 15,
+		grandma: 100,
+		'alchemy lab': 75000000000,
+		bank: 1400000,
+		factory: 130000,
+		farm: 1100,
+		mine: 12000,
+		portal: 1000000000000,
+		shipment: 5100000000,
+		temple: 20000000,
+		'time machine': 14000000000000,
+		'wizard tower': 330000000
 	});
 });
 
 test('costs are increasing are as expected', () => {
-	expect(getCosts([{ type: 'grandma', timestamp: 0 }])).toEqual({
-		grandma: 18,
-		factory: 100
+	const otherThings = {
+		grandma: 100,
+		'alchemy lab': 75000000000,
+		bank: 1400000,
+		factory: 130000,
+		farm: 1100,
+		mine: 12000,
+		portal: 1000000000000,
+		shipment: 5100000000,
+		temple: 20000000,
+		'time machine': 14000000000000,
+		'wizard tower': 330000000
+	};
+	expect(getCosts([{ type: 'cursor', timestamp: 0 }])).toEqual({
+		cursor: 18,
+		...otherThings
 	});
 	expect(
 		getCosts([
-			{ type: 'grandma', timestamp: 0 },
-			{ type: 'grandma', timestamp: 0 }
+			{ type: 'cursor', timestamp: 0 },
+			{ type: 'cursor', timestamp: 0 }
 		])
 	).toEqual({
-		grandma: 20,
-		factory: 100
+		cursor: 20,
+		...otherThings
 	});
 	expect(
 		getCosts([
-			{ type: 'grandma', timestamp: 0 },
-			{ type: 'grandma', timestamp: 0 },
-			{ type: 'grandma', timestamp: 0 }
+			{ type: 'cursor', timestamp: 0 },
+			{ type: 'cursor', timestamp: 0 },
+			{ type: 'cursor', timestamp: 0 }
 		])
 	).toEqual({
-		grandma: 23,
-		factory: 100
+		cursor: 23,
+		...otherThings
 	});
 	expect(
 		getCosts([
-			{ type: 'grandma', timestamp: 0 },
-			{ type: 'grandma', timestamp: 0 },
-			{ type: 'grandma', timestamp: 0 },
-			{ type: 'grandma', timestamp: 0 }
+			{ type: 'cursor', timestamp: 0 },
+			{ type: 'cursor', timestamp: 0 },
+			{ type: 'cursor', timestamp: 0 },
+			{ type: 'cursor', timestamp: 0 }
 		])
 	).toEqual({
-		grandma: 27,
-		factory: 100
+		cursor: 27,
+		...otherThings
 	});
 });
 
 test('events are validated by addEvent', () => {
 	const fullState: FullState = [];
-	const result = addEvent(fullState, { type: 'grandma', timestamp: 0 });
+	const result = addEvent(fullState, { type: 'cursor', timestamp: 0 });
 
 	expect(result).toEqual({
 		type: 'failure',
@@ -108,10 +131,10 @@ test('events are validated by addEvent', () => {
 
 test('events are validated by addEvent', () => {
 	const fullState: FullState = [...new Array(15)].map(() => ({ type: 'click', timestamp: 0 }));
-	const result = addEvent(fullState, { type: 'grandma', timestamp: 1000 });
+	const result = addEvent(fullState, { type: 'cursor', timestamp: 1000 });
 
 	expect(result).toEqual({
 		type: 'success',
-		newState: [...fullState, { type: 'grandma', timestamp: 1000 }]
+		newState: [...fullState, { type: 'cursor', timestamp: 1000 }]
 	});
 });

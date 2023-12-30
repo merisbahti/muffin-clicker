@@ -1,7 +1,21 @@
 import * as R from 'remeda';
 export type FullState = Event[];
 
-export const eventTypes = ['click', 'grandma', 'factory'] as const;
+export const eventTypes = [
+	'click',
+	'cursor',
+	'grandma',
+	'farm',
+	'mine',
+	'factory',
+	'bank',
+	'temple',
+	'wizard tower',
+	'shipment',
+	'alchemy lab',
+	'portal',
+	'time machine'
+] as const;
 export type EventType = (typeof eventTypes)[number];
 
 export type NonClickEventType = Exclude<EventType, 'click'>;
@@ -21,14 +35,34 @@ export type NonClickEvent = {
 
 const clicksPerSecond: { [key in EventType]: number } = {
 	click: 0,
-	grandma: 0.1,
-	factory: 0.5
+	cursor: 0.1,
+	grandma: 1,
+	farm: 8,
+	mine: 47,
+	factory: 260,
+	bank: 1400,
+	temple: 7800,
+	'wizard tower': 44000,
+	shipment: 260000,
+	'alchemy lab': 1.6e6,
+	portal: 10e6,
+	'time machine': 65e6
 };
 
 const baseCosts: { [key in EventType]: number } = {
 	click: 0,
-	grandma: 15,
-	factory: 100
+	cursor: 15,
+	grandma: 100,
+	farm: 1100,
+	mine: 12000,
+	factory: 130000,
+	bank: 1.4e6,
+	temple: 20e6,
+	'wizard tower': 330e6,
+	shipment: 5.1e9,
+	'alchemy lab': 75e9,
+	portal: 1e12,
+	'time machine': 14e12
 };
 
 export const getCost = (type: NonClickEventType, count: number) =>
@@ -57,15 +91,6 @@ export const addEvent = (
 
 	return { type: 'success', newState: [...state, event] };
 };
-
-// export const validateEvents = (state: FullState, currentTime: number): number => {
-// 	return state.reduce((currentValue, { type, timestamp }) => {
-// 		switch (type) {
-// 			case 'click':
-// 				return getCountAtTime();
-// 		}
-// 	}, 0);
-// };
 
 export const getCosts = (state: FullState): { [type in NonClickEventType]: number } => {
 	const counts = R.mapValues(
