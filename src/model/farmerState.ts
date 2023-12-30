@@ -1,21 +1,24 @@
 import * as R from 'remeda';
-export type FullState = Event[];
+import { z } from 'zod';
+export type FullState = MuffinEvent[];
 
-export const eventTypes = [
-	'click',
-	'cursor',
-	'grandma',
-	'farm',
-	'mine',
-	'factory',
-	'bank',
-	'temple',
-	'wizard tower',
-	'shipment',
-	'alchemy lab',
-	'portal',
-	'time machine'
-] as const;
+export const eventTypesSchema = z.union([
+	z.literal('click'),
+	z.literal('cursor'),
+	z.literal('grandma'),
+	z.literal('farm'),
+	z.literal('mine'),
+	z.literal('factory'),
+	z.literal('bank'),
+	z.literal('temple'),
+	z.literal('wizard tower'),
+	z.literal('shipment'),
+	z.literal('alchemy lab'),
+	z.literal('portal'),
+	z.literal('time machine')
+]);
+
+export const eventTypes = eventTypesSchema.options.map((x) => x.value);
 export type EventType = (typeof eventTypes)[number];
 
 export type NonClickEventType = Exclude<EventType, 'click'>;
@@ -23,10 +26,11 @@ export const nonClickEventTypes = eventTypes.filter(
 	(eventType): eventType is NonClickEventType => eventType !== 'click'
 );
 
-export type Event = {
-	type: EventType;
-	timestamp: number;
-};
+export const MuffinEventSchema = z.object({
+	type: eventTypesSchema,
+	timestamp: z.number()
+});
+export type MuffinEvent = z.TypeOf<typeof MuffinEventSchema>;
 
 export type NonClickEvent = {
 	type: NonClickEventType;
@@ -70,10 +74,19 @@ export const getCost = (type: NonClickEventType, count: number) =>
 
 const costIncreaseFactor = 1.15;
 
-export const addEvent = (
-	state: FullState,
-	event: Event
-): { type: 'success'; newState: FullState } | { type: 'failure'; error: string } => {
+export const AddEventResponseSchema = z.union([
+	z.object({
+		type: z.literal('success'),
+		newState: z.array(MuffinEventSchema)
+	}),
+	z.object({
+		type: z.literal('failure'),
+		error: z.string()
+	})
+]);
+
+export type AddEventResponse = z.infer<typeof AddEventResponseSchema>;
+export const addEvent = (state: FullState, event: MuffinEvent): AddEventResponse => {
 	if (nonClickEventTypes.includes(event.type as NonClickEventType)) {
 		// validate cost
 		const cost = getCost(
