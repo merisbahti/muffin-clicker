@@ -3,8 +3,8 @@ import type { UnwrapPromise } from '@prisma/client/runtime/library';
 import {
 	addEvent,
 	eventTypesSchema,
-	type MuffinEvent,
-	type AddEventResponse
+	type AddEventResponse,
+	type FullState
 } from '../../../model/farmerState';
 import { z } from 'zod';
 
@@ -23,15 +23,19 @@ const createOrGetDefaultUser = async () => {
 	return createResult;
 };
 
-const getEventsForUser = (user: { id: number }) =>
-	db.event.findMany({ where: { userId: user.id } });
+const getEventsForUser = (user: { id: number }): Promise<FullState> =>
+	db.event
+		.findMany({ where: { userId: user.id } })
+		.then((x) =>
+			x.map((x) => ({ timestamp: x.timestamp.getTime(), type: eventTypesSchema.parse(x.type) }))
+		);
 
 export async function GET() {
 	const options: ResponseInit = {
 		status: 200
 	};
 	const user = await createOrGetDefaultUser();
-	const events = await getEventsForUser(user);
+	const events: FullState = await getEventsForUser(user);
 
 	return new Response(JSON.stringify(events), options);
 }
@@ -49,15 +53,7 @@ export async function PUT({ request }) {
 
 	const currentEvents = await getEventsForUser(user);
 
-	const validatedEvents = currentEvents.map((x): MuffinEvent => {
-		const parsedEventTypes = eventTypesSchema.safeParse(x.type);
-		if (parsedEventTypes.success) {
-			return { timestamp: x.timestamp.getTime(), type: parsedEventTypes.data };
-		}
-		throw new Error(`Failed parsing event: ${JSON.stringify(x)}`);
-	});
-
-	const eventsResult = addEvent(validatedEvents, { type: json.eventType, timestamp });
+	const eventsResult = addEvent(currentEvents, { type: json.eventType, timestamp });
 
 	if (eventsResult.type === 'failure') {
 		return new Response(JSON.stringify(eventsResult), { status: 400 });
