@@ -1,57 +1,58 @@
 import db from '$lib/server/client';
 import type { UnwrapPromise } from '@prisma/client/runtime/library';
-import {
-	addEvent,
-	eventTypesSchema,
-	type AddEventResponse,
-	type FullState
-} from '../../../model/farmerState';
+import { addEvent, eventTypesSchema, type AddEventResponse } from '../../../model/farmerState';
 import { z } from 'zod';
+import type { UserResponse } from './types';
 
 export type EventsResponse = UnwrapPromise<ReturnType<typeof db.event.findMany>>;
 
-const createOrGetDefaultUser = async () => {
-	const uniqueUser = await db.user.findUnique({ where: { id: 1 } });
+const getOrCreateUser = async (userId: string | null): Promise<UserResponse> => {
+	const uniqueUser =
+		(userId
+			? await db.user.findUnique({
+					where: { id: userId },
+					include: { events: true }
+				})
+			: null) ??
+		(await db.user.create({
+			data: {},
+			include: { events: true }
+		}));
 
-	if (uniqueUser) {
-		return uniqueUser;
-	}
+	const formatUserResponse: UserResponse = {
+		id: uniqueUser.id,
+		events: uniqueUser.events.map((event) => ({
+			timestamp: event.timestamp.getTime(),
+			type: eventTypesSchema.parse(event.type)
+		}))
+	};
 
-	const createResult = await db.user.create({
-		data: { id: 1, name: 'default', email: 'example@example.com' }
-	});
-	return createResult;
+	return formatUserResponse;
 };
 
-const getEventsForUser = (user: { id: number }): Promise<FullState> =>
-	db.event
-		.findMany({ where: { userId: user.id } })
-		.then((x) =>
-			x.map((x) => ({ timestamp: x.timestamp.getTime(), type: eventTypesSchema.parse(x.type) }))
-		);
-
-export async function GET() {
+export async function GET(context: { request: Request }) {
+	const userId = context.request.headers.get('x-user-id') ?? null;
 	const options: ResponseInit = {
 		status: 200
 	};
-	const user = await createOrGetDefaultUser();
-	const events: FullState = await getEventsForUser(user);
+	const user: UserResponse = await getOrCreateUser(userId);
 
-	return new Response(JSON.stringify(events), options);
+	return new Response(JSON.stringify(user), options);
 }
 
-export async function PUT({ request }) {
+export async function PUT(context: { request: Request }) {
+	const userId = context.request.headers.get('x-user-id') ?? null;
 	const options: ResponseInit = {
 		status: 200
 	};
 
 	const putSchema = z.object({ eventType: eventTypesSchema });
-	const json = await putSchema.parseAsync(await request.json());
+	const json = await putSchema.parseAsync(await context.request.json());
 	const timestamp = new Date().getTime();
 
-	const user = await createOrGetDefaultUser();
+	const user = await getOrCreateUser(userId);
 
-	const currentEvents = await getEventsForUser(user);
+	const currentEvents = user.events;
 
 	const eventsResult = addEvent(currentEvents, { type: json.eventType, timestamp });
 

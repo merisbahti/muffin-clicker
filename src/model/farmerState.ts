@@ -126,7 +126,9 @@ export const getCostsAtTime = (events: FullState) => {
 };
 
 export const getProductionAtTime = (events: FullState, currentTime: number): number => {
-	const clickCount = events.filter((event) => event.type === 'click').length;
+	const clickCount = events.filter(
+		(event) => event.type === 'click' && event.timestamp < currentTime
+	).length;
 
 	const autoClickerclicks = R.pipe(
 		events,

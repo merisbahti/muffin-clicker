@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { notificationsStore } from '$lib/components/notifications.svelte';
-	import type { PageData } from '../$types';
 
 	import Toast from '$lib/components/toast.svelte';
 	import {
@@ -12,9 +11,30 @@
 		AddEventResponseSchema
 	} from '../../model/farmerState';
 	import * as R from 'remeda';
+	import { UserResponseSchema, type UserResponse } from '../api/events/types';
+	import { createLocalStorageRune } from '$lib/utils/localstorage-rune.svelte';
+	import { z } from 'zod';
 	const getCurrentTimestamp = () => new Date().getTime();
 
-	let events: FullState = $state([]);
+	let userId = createLocalStorageRune('userId', z.union([z.string(), z.null()]), null);
+
+	let userState = $state<UserResponse | null>(null);
+	$effect(() => console.log('userId', userId));
+	$effect(() => console.log('userState', userState));
+
+	$effect(() => {
+		const fn = async () =>
+			await fetch('/api/events', {
+				...(userId.value ? { headers: { 'x-user-id': userId.value } } : {})
+			})
+				.then((x) => x.json())
+				.then(UserResponseSchema.parseAsync)
+				.then((x) => {
+					userId.value = x.id;
+					userState = x;
+				});
+		fn();
+	});
 
 	$effect(() => {
 		const fn = async () =>
@@ -27,24 +47,41 @@
 	});
 
 	let timer = $state(getCurrentTimestamp());
+	const resolution = 50;
 
 	setInterval(() => {
 		timer = getCurrentTimestamp();
-	}, 25);
+	}, resolution);
 
-	const totalCurrentCount = $derived(Math.floor(getCountAtTime(events, timer)));
+	const countInfo = $derived(
+		(() => {
+			if (userState === null) return null;
+			const currentCount = getCountAtTime(userState.events, timer);
+			const count10SecondsAgo = getCountAtTime(userState.events, timer - 10000);
+
+			return {
+				totalCurrentCount: Math.floor(currentCount),
+				rate: (currentCount - count10SecondsAgo) / 10
+			};
+		})()
+	);
 
 	const registerEvent = async (eventType: EventType) => {
+		if (!userId.value) {
+			notificationsStore.danger('not logged in', 1000);
+			return;
+		}
 		const result = await fetch('/api/events', {
 			method: 'PUT',
-			body: JSON.stringify({ eventType: eventType })
+			body: JSON.stringify({ eventType: eventType }),
+			headers: { 'x-user-id': userId.value }
 		})
 			.then((x) => x.json())
 			.then(AddEventResponseSchema.parseAsync);
 
 		switch (result.type) {
 			case 'success':
-				events = result.newState;
+				if (userState) userState.events = result.newState;
 				break;
 			case 'failure':
 				notificationsStore.danger(result.error, 1000);
@@ -53,7 +90,7 @@
 	};
 
 	const getEventTypeCount = (eventType: EventType) =>
-		events.filter((x) => x.type === eventType).length;
+		userState?.events.filter((x) => x.type === eventType).length ?? 0;
 
 	const derivedCounts = $derived(
 		R.mapToObj(
@@ -72,7 +109,12 @@
 	<h1>Muffin Clicker</h1>
 	<div class="flex flex-row space-between">
 		<div style="width: 100%">
-			<button on:click={() => registerEvent('click')}>{totalCurrentCount}</button>
+			{#if countInfo === null}
+				<div>Loading...</div>
+			{:else}
+				<button on:click={() => registerEvent('click')}>{countInfo.totalCurrentCount}</button>
+				<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
+			{/if}
 		</div>
 		<div class="bg-gray-400 max-h-fit flex flex-col" style="width: 100%">
 			{#each nonClickEventTypes as eventType}
