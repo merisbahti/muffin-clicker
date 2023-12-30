@@ -14,13 +14,13 @@
 	import { UserResponseSchema, type UserResponse } from '../api/events/types';
 	import { createLocalStorageRune } from '$lib/utils/localstorage-rune.svelte';
 	import { z } from 'zod';
+	const formatNumber = (nr: number) =>
+		new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(nr);
 	const getCurrentTimestamp = () => new Date().getTime();
 
 	let userId = createLocalStorageRune('userId', z.union([z.string(), z.null()]), null);
 
 	let userState = $state<UserResponse | null>(null);
-	$effect(() => console.log('userId', userId));
-	$effect(() => console.log('userState', userState));
 
 	$effect(() => {
 		const fn = async () =>
@@ -36,16 +36,6 @@
 		fn();
 	});
 
-	$effect(() => {
-		const fn = async () =>
-			await fetch('/api/events')
-				.then((x) => x.json())
-				.then((x) => {
-					events = x;
-				});
-		fn();
-	});
-
 	let timer = $state(getCurrentTimestamp());
 	const resolution = 50;
 
@@ -57,11 +47,11 @@
 		(() => {
 			if (userState === null) return null;
 			const currentCount = getCountAtTime(userState.events, timer);
-			const count10SecondsAgo = getCountAtTime(userState.events, timer - 10000);
+			const count10SecondsAgo = getCountAtTime(userState.events, timer - 1000);
 
 			return {
 				totalCurrentCount: Math.floor(currentCount),
-				rate: (currentCount - count10SecondsAgo) / 10
+				rate: currentCount - count10SecondsAgo
 			};
 		})()
 	);
@@ -112,16 +102,17 @@
 			{#if countInfo === null}
 				<div>Loading...</div>
 			{:else}
-				<button on:click={() => registerEvent('click')}>{countInfo.totalCurrentCount}</button>
+				<button on:click={() => registerEvent('click')}
+					>{formatNumber(countInfo.totalCurrentCount)}</button
+				>
 				<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
 			{/if}
 		</div>
 		<div class="bg-gray-400 max-h-fit flex flex-col" style="width: 100%">
 			{#each nonClickEventTypes as eventType}
 				<button type="button" class="bg-slate-500" on:click={() => registerEvent(eventType)}
-					>{eventType}: {derivedCounts[eventType]} (cost: {getCost(
-						eventType,
-						derivedCounts[eventType]
+					>{eventType}: {derivedCounts[eventType]} (cost: {formatNumber(
+						getCost(eventType, derivedCounts[eventType])
 					)})</button
 				>
 			{/each}
