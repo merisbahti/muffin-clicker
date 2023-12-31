@@ -116,7 +116,7 @@
 						<div class="text-6xl">
 							{formatNumber(countInfo.totalCurrentCount)}
 						</div>
-						<img draggable="false" class="scaling" src={muffinImage} alt="muffin" />
+						<img draggable="false" class="muffin-click" src={muffinImage} alt="muffin" />
 						<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
 					</div>
 				</button>
@@ -152,6 +152,40 @@
 </div>
 
 <style>
+	@keyframes spin-click {
+		0% {
+			transform: rotate(0) scale(1);
+		}
+		25% {
+			transform: rotate(5deg) scale(0.916);
+		}
+		75% {
+			transform: rotate(-5deg) scale(0.833);
+		}
+		100% {
+			transform: rotate(0deg) scale(0.75);
+		}
+	}
+
+	.muffin-click {
+		transition-duration: 0.2s;
+	}
+
+	.muffin-click:hover {
+		transform: scale(1.1); /* Scale the button 20% larger on hover */
+		transition-duration: 0.2s;
+	}
+
+	.muffin-click:active {
+		animation: spin-click 0.2s linear;
+	}
+
+	.muffin-click:active:hover {
+		transform: scale(0.75);
+		rotate: 0deg;
+		transition-duration: 0.2s;
+	}
+
 	.scaling {
 		transition-duration: 0.2s;
 	}
