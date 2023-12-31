@@ -35,7 +35,7 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write ."
 	},
-	"type": "commonjs",
+	"type": "module",
 	"prisma": {
 		"seed": "ts-node prisma/seed.ts"
 	},
