@@ -95,12 +95,6 @@
 	const shouldBeHidden = (eventType: EventType) => {
 		const myIndex = eventTypes.indexOf(eventType);
 		if (myIndex === 0) return false;
-		console.log(
-			eventType,
-			eventTypes.slice(0, myIndex),
-			eventTypes.slice(0, myIndex).map((x) => [x, derivedCounts[x]]),
-			eventTypes.slice(0, myIndex).some((x) => derivedCounts[x] > 0)
-		);
 		const previousEventType = eventTypes[myIndex - 1];
 		return derivedCounts[previousEventType] === 0;
 	};
