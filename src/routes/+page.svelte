@@ -116,7 +116,7 @@
 						<div class="text-6xl">
 							{formatNumber(countInfo.totalCurrentCount)}
 						</div>
-						<img class="scaling" src={muffinImage} alt="muffin" />
+						<img draggable="false" class="scaling" src={muffinImage} alt="muffin" />
 						<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
 					</div>
 				</button>
