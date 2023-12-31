@@ -106,15 +106,16 @@
 
 <div>
 	<Toast></Toast>
-	<h1>Muffin Clicker</h1>
-	<div class="flex flex-row space-between">
+	<div class="flex flex-row space-between pt-12">
 		<div class="flex flex-col w-full content-center">
 			{#if countInfo === null}
 				<div>Loading...</div>
 			{:else}
 				<button class="mx-auto my-auto text-center" on:click={() => registerEvent('click')}>
 					<div>
-						{formatNumber(countInfo.totalCurrentCount)}
+						<div class="text-6xl">
+							{formatNumber(countInfo.totalCurrentCount)}
+						</div>
 						<img class="scaling" src={muffinImage} alt="muffin" />
 						<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
 					</div>
@@ -125,7 +126,9 @@
 			{#each nonClickEventTypes as eventType}
 				{#if !shouldBeHidden(eventType)}
 					<button
-						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400"
+						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400 disabled:opacity-80"
+						disabled={getCost(eventType, derivedCounts[eventType]) >
+							(countInfo?.totalCurrentCount ?? 0)}
 						on:click={() => registerEvent(eventType)}
 					>
 						<div class="flex flex-row space-x-4 justify-between p-5 py-2">
