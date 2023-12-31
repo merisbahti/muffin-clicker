@@ -13,7 +13,8 @@
 		eventTypes,
 		eventTypesSchema,
 		type NonClickEvent,
-		type NonClickEventType
+		type NonClickEventType,
+		addEvent
 	} from '../model/farmerState';
 	import * as R from 'remeda';
 	import { UserResponseSchema, type UserResponse } from './api/events/types';
@@ -63,10 +64,13 @@
 	);
 
 	const registerEvent = async (eventType: EventType) => {
-		if (!userId.value) {
+		if (!userId.value || !userState) {
 			notificationsStore.danger('not logged in', 1000);
 			return;
 		}
+		const newState = addEvent(userState.events, { type: eventType, timestamp: timer });
+		if (newState.type === 'success') userState.events = newState.newState;
+
 		const result = await fetch('/api/events', {
 			method: 'PUT',
 			body: JSON.stringify({ eventType: eventType }),
@@ -77,7 +81,7 @@
 
 		switch (result.type) {
 			case 'success':
-				if (userState) userState.events = result.newState;
+				// if (userState) userState.events = result.newState;
 				break;
 			case 'failure':
 				notificationsStore.danger(result.error, 1000);
@@ -126,7 +130,7 @@
 			{#each nonClickEventTypes as eventType}
 				{#if !shouldBeHidden(eventType)}
 					<button
-						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400 disabled:opacity-50"
+						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-green-600 hover:bg-green-400 disabled:opacity-50"
 						disabled={getCost(eventType, derivedCounts[eventType]) >
 							(countInfo?.totalCurrentCount ?? 0)}
 						on:click={() => registerEvent(eventType)}
