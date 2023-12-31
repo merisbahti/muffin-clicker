@@ -124,8 +124,11 @@
 		<div class="flex flex-col w-f space-y-5 items-center" style="width: 100%">
 			{#each nonClickEventTypes as eventType}
 				{#if !shouldBeHidden(eventType)}
-					<button class="w-fill items-center w-1/2" on:click={() => registerEvent(eventType)}>
-						<div class="bg-slate-500 flex flex-row space-x-4 justify-between p-5 py-2">
+					<button
+						class="w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400"
+						on:click={() => registerEvent(eventType)}
+					>
+						<div class="flex flex-row space-x-4 justify-between p-5 py-2">
 							<div class="flex flex-col w-fill">
 								<div class="text-xl">
 									{eventType}
