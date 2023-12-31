@@ -115,7 +115,7 @@
 				<button class="mx-auto my-auto text-center" on:click={() => registerEvent('click')}>
 					<div>
 						{formatNumber(countInfo.totalCurrentCount)}
-						<img src={muffinImage} class="" alt="muffin" />
+						<img class="scaling" src={muffinImage} alt="muffin" />
 						<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
 					</div>
 				</button>
@@ -125,7 +125,7 @@
 			{#each nonClickEventTypes as eventType}
 				{#if !shouldBeHidden(eventType)}
 					<button
-						class="w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400"
+						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400"
 						on:click={() => registerEvent(eventType)}
 					>
 						<div class="flex flex-row space-x-4 justify-between p-5 py-2">
@@ -149,4 +149,18 @@
 </div>
 
 <style>
+	.scaling:hover {
+		transform: scale(1.2); /* Scale the button 20% larger on hover */
+		transition-duration: 0.2s;
+	}
+
+	.scaling:active {
+		transform: scale(0.8); /* Scale the button 20% smaller on click */
+		transition-duration: 0.2s; /* Animate the scaling back to original size */
+	}
+
+	.scaling:active:hover {
+		transform: scale(1); /* Reset scaling to original size on hover after click */
+		transition-duration: 0.2s;
+	}
 </style>
