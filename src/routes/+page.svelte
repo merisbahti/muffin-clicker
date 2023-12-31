@@ -126,7 +126,7 @@
 			{#each nonClickEventTypes as eventType}
 				{#if !shouldBeHidden(eventType)}
 					<button
-						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400 disabled:opacity-80"
+						class="scaling w-fill items-center w-1/2 shadow-black shadow-lg hover:scale-125 bg-slate-500 hover:bg-slate-400 disabled:opacity-50"
 						disabled={getCost(eventType, derivedCounts[eventType]) >
 							(countInfo?.totalCurrentCount ?? 0)}
 						on:click={() => registerEvent(eventType)}
@@ -152,6 +152,10 @@
 </div>
 
 <style>
+	.scaling {
+		transition-duration: 0.2s;
+	}
+
 	.scaling:hover {
 		transform: scale(1.2); /* Scale the button 20% larger on hover */
 		transition-duration: 0.2s;
