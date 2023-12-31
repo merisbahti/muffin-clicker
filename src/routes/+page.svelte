@@ -110,7 +110,7 @@
 
 <div>
 	<Toast></Toast>
-	<div class="flex flex-row space-between pt-12">
+	<div class="flex flex-row max-md:flex-col max-md:space-y-12 space-between pt-12">
 		<div class="flex flex-col w-full content-center">
 			{#if countInfo === null}
 				<div>Loading...</div>
