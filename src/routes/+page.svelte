@@ -112,29 +112,25 @@
 			{#if countInfo === null}
 				<div>Loading...</div>
 			{:else}
-				<div
-					aria-roledescription="button"
-					role="button"
-					tabindex="-1"
-					class="mx-auto my-auto text-center"
-					on:click={() => registerEvent('click')}
-				>
-					{formatNumber(countInfo.totalCurrentCount)}
-					<img src={muffinImage} class="" alt="muffin" />
-					<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
-				</div>
+				<button class="mx-auto my-auto text-center" on:click={() => registerEvent('click')}>
+					<div>
+						{formatNumber(countInfo.totalCurrentCount)}
+						<img src={muffinImage} class="" alt="muffin" />
+						<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
+					</div>
+				</button>
 			{/if}
 		</div>
-		<div class="flex flex-col w-f space-y-5" style="width: 100%">
+		<div class="flex flex-col w-f space-y-5 items-center" style="width: 100%">
 			{#each nonClickEventTypes as eventType}
 				{#if !shouldBeHidden(eventType)}
-					<button class="w-fill items-center" on:click={() => registerEvent(eventType)}>
-						<div class="bg-slate-500 flex flex-row space-x-4 justify-between w-1/2">
+					<button class="w-fill items-center w-1/2" on:click={() => registerEvent(eventType)}>
+						<div class="bg-slate-500 flex flex-row space-x-4 justify-between p-5 py-2">
 							<div class="flex flex-col w-fill">
-								<div>
+								<div class="text-xl">
 									{eventType}
 								</div>
-								<div>
+								<div class="font-extralight">
 									cost: {formatNumber(getCost(eventType, derivedCounts[eventType]))}, rate {clicksPerSecond[
 										eventType
 									]}
