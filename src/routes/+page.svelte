@@ -105,7 +105,7 @@
 </script>
 
 <svelte:head>
-	<title>Muffin Clicker - {formatNumber(countInfo.totalCurrentCount)}</title>
+	<title>Muffin Clicker - {formatNumber(countInfo?.totalCurrentCount ?? 0)}</title>
 </svelte:head>
 
 <div>
