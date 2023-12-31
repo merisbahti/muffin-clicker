@@ -37,7 +37,7 @@ export type NonClickEvent = {
 	timestamp: number;
 };
 
-const clicksPerSecond: { [key in EventType]: number } = {
+export const clicksPerSecond: { [key in EventType]: number } = {
 	click: 0,
 	cursor: 0.1,
 	grandma: 1,

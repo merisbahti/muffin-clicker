@@ -8,12 +8,18 @@
 		type FullState,
 		nonClickEventTypes,
 		getCost,
-		AddEventResponseSchema
+		AddEventResponseSchema,
+		clicksPerSecond,
+		eventTypes,
+		eventTypesSchema,
+		type NonClickEvent,
+		type NonClickEventType
 	} from '../model/farmerState';
 	import * as R from 'remeda';
 	import { UserResponseSchema, type UserResponse } from './api/events/types';
 	import { createLocalStorageRune } from '$lib/utils/localstorage-rune.svelte';
 	import { z } from 'zod';
+	import muffinImage from '$lib/images/muffin-removebg-preview.png';
 	const formatNumber = (nr: number) =>
 		new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(nr);
 	const getCurrentTimestamp = () => new Date().getTime();
@@ -83,11 +89,21 @@
 		userState?.events.filter((x) => x.type === eventType).length ?? 0;
 
 	const derivedCounts = $derived(
-		R.mapToObj(
-			nonClickEventTypes,
-			(eventType) => [eventType, getEventTypeCount(eventType)] as const
-		)
+		R.mapToObj(eventTypes, (eventType) => [eventType, getEventTypeCount(eventType)] as const)
 	);
+
+	const shouldBeHidden = (eventType: EventType) => {
+		const myIndex = eventTypes.indexOf(eventType);
+		if (myIndex === 0) return false;
+		console.log(
+			eventType,
+			eventTypes.slice(0, myIndex),
+			eventTypes.slice(0, myIndex).map((x) => [x, derivedCounts[x]]),
+			eventTypes.slice(0, myIndex).some((x) => derivedCounts[x] > 0)
+		);
+		const previousEventType = eventTypes[myIndex - 1];
+		return derivedCounts[previousEventType] === 0;
+	};
 </script>
 
 <svelte:head>
@@ -98,23 +114,42 @@
 	<Toast></Toast>
 	<h1>Muffin Clicker</h1>
 	<div class="flex flex-row space-between">
-		<div style="width: 100%">
+		<div class="flex flex-col w-full content-center">
 			{#if countInfo === null}
 				<div>Loading...</div>
 			{:else}
-				<button on:click={() => registerEvent('click')}
-					>{formatNumber(countInfo.totalCurrentCount)}</button
+				<div
+					aria-roledescription="button"
+					role="button"
+					tabindex="-1"
+					class="mx-auto my-auto text-center"
+					on:click={() => registerEvent('click')}
 				>
-				<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
+					{formatNumber(countInfo.totalCurrentCount)}
+					<img src={muffinImage} class="" alt="muffin" />
+					<div>Rate: {countInfo.rate.toFixed(2)}/s</div>
+				</div>
 			{/if}
 		</div>
-		<div class="bg-gray-400 max-h-fit flex flex-col" style="width: 100%">
+		<div class="flex flex-col w-f space-y-5" style="width: 100%">
 			{#each nonClickEventTypes as eventType}
-				<button type="button" class="bg-slate-500" on:click={() => registerEvent(eventType)}
-					>{eventType}: {derivedCounts[eventType]} (cost: {formatNumber(
-						getCost(eventType, derivedCounts[eventType])
-					)})</button
-				>
+				{#if !shouldBeHidden(eventType)}
+					<button class="w-fill items-center" on:click={() => registerEvent(eventType)}>
+						<div class="bg-slate-500 flex flex-row space-x-4 justify-between w-1/2">
+							<div class="flex flex-col w-fill">
+								<div>
+									{eventType}
+								</div>
+								<div>
+									cost: {formatNumber(getCost(eventType, derivedCounts[eventType]))}, rate {clicksPerSecond[
+										eventType
+									]}
+								</div>
+							</div>
+							<div class="font-bold text-3xl my-auto">{derivedCounts[eventType]}</div>
+						</div>
+					</button>
+				{/if}
 			{/each}
 		</div>
 	</div>
