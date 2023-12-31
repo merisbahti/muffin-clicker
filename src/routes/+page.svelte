@@ -177,7 +177,8 @@
 	}
 
 	.muffin-click:active {
-		animation: spin-click 0.2s linear;
+		animation: spin-click 0.2s;
+		animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
 	}
 
 	.muffin-click:active:hover {
@@ -202,6 +203,6 @@
 
 	.scaling:active:hover {
 		transform: scale(1); /* Reset scaling to original size on hover after click */
-		transition-duration: 0.2s;
+		transition-duration: 0.1s;
 	}
 </style>
