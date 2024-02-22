@@ -19,7 +19,7 @@
 	import { createLocalStorageRune } from '$lib/utils/localstorage-rune.svelte';
 	import { z } from 'zod';
 	import muffinImage from '$lib/images/muffin-removebg-preview.png';
-	import { useQuery } from '@sveltestack/svelte-query';
+	import { useQuery, useQueryClient } from '@sveltestack/svelte-query';
 	const formatNumber = (nr: number) =>
 		new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(nr);
 	const getCurrentTimestamp = () => new Date().getTime();
@@ -34,8 +34,10 @@
 		enabled: true
 	});
 
+	const userStateKey = 'user-state';
+
 	let userState = useQuery({
-		queryKey: ['user-state'],
+		queryKey: userStateKey,
 		queryFn: async () =>
 			await fetch('/api/events', {
 				...(userId.value ? { headers: { 'x-user-id': userId.value } } : {})
@@ -48,6 +50,8 @@
 		userId.value = $userState.data?.id ?? null;
 	});
 
+	const queryClient = useQueryClient();
+
 	let timer = $state(getCurrentTimestamp());
 	const resolution = 50;
 
@@ -56,9 +60,11 @@
 	}, resolution);
 
 	const countInfo = $derived.by(() => {
+		const events = $userState.data?.events ?? [];
 		if (!$userState.data) return null;
-		const currentCount = getCountAtTime($userState.data.events, timer);
-		const count10SecondsAgo = getCountAtTime($userState.data.events, timer - 1000);
+		console.log('events', $userState.data.events);
+		const currentCount = getCountAtTime(events, timer);
+		const count10SecondsAgo = getCountAtTime(events, timer - 1000);
 
 		return {
 			totalCurrentCount: Math.floor(currentCount),
@@ -82,7 +88,7 @@
 
 		switch (result.type) {
 			case 'success':
-				// if (userState) userState.events = result.newState;
+				queryClient.setQueryData(userStateKey, { ...$userState.data, events: result.newState });
 				break;
 			case 'failure':
 				notificationsStore.danger(result.error, 1000);

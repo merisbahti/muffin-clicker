@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { QueryClient, QueryClientProvider } from '@sveltestack/svelte-query';
 
-	const queryClient = new QueryClient();
+	export const queryClient = new QueryClient();
 	import Toast from '$lib/components/toast.svelte';
 	import Muffin from './components/muffin.svelte';
 </script>
