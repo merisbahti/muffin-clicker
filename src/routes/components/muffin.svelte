@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { notificationsStore } from '$lib/components/notifications.svelte';
 
+	const { onCountUpdate } = $props<{ onCountUpdate: (nr: number) => void }>();
+
 	import {
 		getCountAtTime,
 		type EventType,
@@ -25,14 +27,6 @@
 	const getCurrentTimestamp = () => new Date().getTime();
 
 	let userId = createLocalStorageRune('userId', z.union([z.string(), z.null()]), null);
-
-	const queryResult = useQuery({
-		queryKey: 'user-response-key',
-		queryFn: () => {
-			return Promise.resolve('hello');
-		},
-		enabled: true
-	});
 
 	const userStateKey = 'user-state';
 
@@ -70,6 +64,8 @@
 			rate: currentCount - count10SecondsAgo
 		};
 	});
+
+	$effect(() => onCountUpdate(countInfo?.totalCurrentCount ?? 0));
 
 	const registerEvent = async (eventType: EventType) => {
 		if (!userId.value || !$userState.data) {
