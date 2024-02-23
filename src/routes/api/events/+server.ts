@@ -6,15 +6,23 @@ import type { UserResponse } from './types';
 
 export type EventsResponse = UnwrapPromise<ReturnType<typeof db.event.findMany>>;
 
-const getOrCreateUser = async (userId: string | null): Promise<UserResponse> => {
+type MinimalPrismaClient = Omit<
+	typeof db,
+	'$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
+const getOrCreateUser = async (
+	userId: string | null,
+	client: MinimalPrismaClient
+): Promise<UserResponse> => {
 	const uniqueUser =
 		(userId
-			? await db.user.findUnique({
+			? await client.user.findUnique({
 					where: { id: userId },
 					include: { events: true }
 				})
 			: null) ??
-		(await db.user.create({
+		(await client.user.create({
 			data: {},
 			include: { events: true }
 		}));
@@ -35,46 +43,53 @@ export async function GET(context: { request: Request }) {
 	const options: ResponseInit = {
 		status: 200
 	};
-	const user: UserResponse = await getOrCreateUser(userId);
+	const user: UserResponse = await getOrCreateUser(userId, db);
 
 	return new Response(JSON.stringify(user), options);
 }
 
 export async function PUT(context: { request: Request }) {
 	const userId = context.request.headers.get('x-user-id') ?? null;
-	const options: ResponseInit = {
-		status: 200
-	};
 
 	const putSchema = z.object({ eventType: eventTypesSchema });
 	const json = await putSchema.parseAsync(await context.request.json());
 	const timestamp = new Date().getTime();
 
-	const user = await getOrCreateUser(userId);
+	const result: AddEventResponse = await db.$transaction(async (client) => {
+		const user = await getOrCreateUser(userId, client);
 
-	const currentEvents = user.events;
+		const currentEvents = user.events;
 
-	const eventsResult = addEvent(currentEvents, { type: json.eventType, timestamp });
+		const eventsResult = addEvent(currentEvents, { type: json.eventType, timestamp });
 
-	if (eventsResult.type === 'failure') {
-		return new Response(JSON.stringify(eventsResult), { status: 400 });
-	}
+		if (eventsResult.type === 'failure') {
+			throw eventsResult;
+		}
 
-	const latestEvent = eventsResult.newState.at(-1);
+		const latestEvent = eventsResult.newState.at(-1);
 
-	if (!latestEvent) {
-		const eventsResult: AddEventResponse = { type: 'failure', error: 'No latest event' };
-		return new Response(JSON.stringify(eventsResult), { status: 400 });
-	}
+		if (!latestEvent) {
+			const eventsResult: AddEventResponse = { type: 'failure', error: 'No latest event' };
+			throw eventsResult;
+		}
 
-	try {
-		await db.event.create({
-			data: { timestamp: new Date(latestEvent.timestamp), type: latestEvent.type, userId: user.id }
-		});
-	} catch (e) {
-		const eventsResult: AddEventResponse = { type: 'failure', error: 'Failed creating event' };
-		return new Response(JSON.stringify(eventsResult), { status: 400 });
-	}
+		try {
+			await client.event.create({
+				data: {
+					timestamp: new Date(latestEvent.timestamp),
+					type: latestEvent.type,
+					userId: user.id
+				}
+			});
+		} catch (e) {
+			const eventsResult: AddEventResponse = { type: 'failure', error: 'Failed creating event' };
+			throw eventsResult;
+		}
 
-	return new Response(JSON.stringify(eventsResult), options);
+		return eventsResult;
+	});
+
+	return new Response(JSON.stringify(result), {
+		status: result.type === 'success' ? 200 : 400
+	});
 }
