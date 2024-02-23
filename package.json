@@ -35,7 +35,8 @@
 		"postinstall": "prisma generate",
 		"test": "vitest",
 		"lint": "prettier --check . && eslint .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"prepare": "husky"
 	},
 	"type": "module",
 	"prisma": {
