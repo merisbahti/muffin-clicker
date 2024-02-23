@@ -59,18 +59,20 @@
 		timer = getCurrentTimestamp();
 	}, resolution);
 
-	const countInfo = $derived.by(() => {
-		const events = $userState.data?.events ?? [];
-		if (!$userState.data) return null;
-		console.log('events', $userState.data.events);
-		const currentCount = getCountAtTime(events, timer);
-		const count10SecondsAgo = getCountAtTime(events, timer - 1000);
+	const countInfo = $derived(
+		(() => {
+			const events = $userState.data?.events ?? [];
+			if (!$userState.data) return null;
+			console.log('events', $userState.data.events);
+			const currentCount = getCountAtTime(events, timer);
+			const count10SecondsAgo = getCountAtTime(events, timer - 1000);
 
-		return {
-			totalCurrentCount: Math.floor(currentCount),
-			rate: currentCount - count10SecondsAgo
-		};
-	});
+			return {
+				totalCurrentCount: Math.floor(currentCount),
+				rate: currentCount - count10SecondsAgo
+			};
+		})()
+	);
 
 	const registerEvent = async (eventType: EventType) => {
 		if (!userId.value || !$userState.data) {
