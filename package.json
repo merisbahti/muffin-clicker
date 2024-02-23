@@ -37,9 +37,7 @@
 		"format": "prettier --write ."
 	},
 	"type": "module",
-	"prisma": {
-		"seed": "ts-node prisma/seed.ts"
-	},
+	"prisma": { "seed": "ts-node prisma/seed.ts" },
 	"dependencies": {
 		"@prisma/client": "5.7.1",
 		"@sveltejs/adapter-vercel": "^4.0.3",
