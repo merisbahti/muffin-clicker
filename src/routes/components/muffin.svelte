@@ -6,7 +6,7 @@
 	import {
 		getCountAtTime,
 		type EventType,
-		type FullState,
+		type Events,
 		nonClickEventTypes,
 		getCost,
 		AddEventResponseSchema,

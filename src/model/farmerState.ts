@@ -1,6 +1,6 @@
 import * as R from 'remeda';
 import { z } from 'zod';
-export type FullState = MuffinEvent[];
+export type Events = MuffinEvent[];
 
 export const eventTypesSchema = z.union([
 	z.literal('click'),
@@ -86,7 +86,7 @@ export const AddEventResponseSchema = z.union([
 ]);
 
 export type AddEventResponse = z.infer<typeof AddEventResponseSchema>;
-export const addEvent = (state: FullState, event: MuffinEvent): AddEventResponse => {
+export const addEvent = (state: Events, event: MuffinEvent): AddEventResponse => {
 	if (nonClickEventTypes.includes(event.type as NonClickEventType)) {
 		// validate cost
 		const cost = getCost(
@@ -105,7 +105,7 @@ export const addEvent = (state: FullState, event: MuffinEvent): AddEventResponse
 	return { type: 'success', newState: [...state, event] };
 };
 
-export const getCosts = (state: FullState): { [type in NonClickEventType]: number } => {
+export const getCosts = (state: Events): { [type in NonClickEventType]: number } => {
 	const counts = R.mapValues(
 		R.groupBy(state, (event) => event.type),
 		(x) => x.length
@@ -113,7 +113,7 @@ export const getCosts = (state: FullState): { [type in NonClickEventType]: numbe
 	return R.mapToObj(nonClickEventTypes, (type) => [type, getCost(type, counts[type] ?? 0)]);
 };
 
-export const getCostsAtTime = (events: FullState) => {
+export const getCostsAtTime = (events: Events) => {
 	const autoClickerCosts = R.pipe(
 		events,
 		R.filter((x): x is NonClickEvent => nonClickEventTypes.includes(x.type as NonClickEventType)),
@@ -125,7 +125,7 @@ export const getCostsAtTime = (events: FullState) => {
 	return autoClickerCosts;
 };
 
-export const getProductionAtTime = (events: FullState, currentTime: number): number => {
+export const getProductionAtTime = (events: Events, currentTime: number): number => {
 	const clickCount = events.filter(
 		(event) => event.type === 'click' && event.timestamp < currentTime
 	).length;
@@ -140,6 +140,6 @@ export const getProductionAtTime = (events: FullState, currentTime: number): num
 	return clickCount + autoClickerclicks;
 };
 
-export const getCountAtTime = (state: FullState, currentTime: number): number => {
+export const getCountAtTime = (state: Events, currentTime: number): number => {
 	return getProductionAtTime(state, currentTime) - getCostsAtTime(state);
 };
