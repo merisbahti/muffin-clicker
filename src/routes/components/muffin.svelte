@@ -43,7 +43,7 @@
 	const queryClient = useQueryClient();
 
 	let timer = $state(getCurrentTimestamp());
-	const resolution = 50;
+	const resolution = 16;
 
 	setInterval(() => {
 		timer = getCurrentTimestamp();
