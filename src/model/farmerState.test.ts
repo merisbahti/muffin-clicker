@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { getProductionAtTime, type Events, getCosts, addEvent } from './farmerState';
+import { type Events, getCosts, foldEvents, calculateNewState } from './farmerState';
 
 test('clicks are correctly counted', () => {
 	const events: Events = [
@@ -8,23 +8,24 @@ test('clicks are correctly counted', () => {
 		{ type: 'click', timestamp: 2000 },
 		{ type: 'click', timestamp: 3000 }
 	];
-	const result = getProductionAtTime(events, 4000);
+	const result = foldEvents(events);
 
-	expect(result).toBe(4);
+	expect(result.count).toBe(4);
 });
 
 test("clicks aren't counted negatively", () => {
 	const events: Events = [{ type: 'grandma', timestamp: 1000 }];
-	const result = getProductionAtTime(events, 0);
+	const result = foldEvents(events);
 
-	expect(result).toBe(0);
+	expect(result.rate).toBe(0);
 });
 
 test('grandma clicks are correctly counted', () => {
-	const events: Events = [{ type: 'grandma', timestamp: 0 }];
-	const result = getProductionAtTime(events, 10000);
+	const event = { type: 'grandma', timestamp: 0 } as const;
+	const result = calculateNewState({ count: 100, rate: 0, countTimestamp: 0, events: [] }, event);
 
-	expect(result).toBe(10);
+	expect(result.count).toBe(0);
+	expect(result.rate).toBe(1);
 });
 
 test('double grandma clicks are correctly counted', () => {
@@ -32,21 +33,27 @@ test('double grandma clicks are correctly counted', () => {
 		{ type: 'grandma', timestamp: 0 },
 		{ type: 'grandma', timestamp: 0 }
 	];
-	const result = getProductionAtTime(events, 10000);
+	const result = foldEvents(events, { count: 215, countTimestamp: 0, events: [], rate: 0 });
 
-	expect(result).toBe(20);
+	expect(result.count).toBe(0);
+	expect(result.rate).toBe(2);
 });
 
 test('grandma + factory clicks are correctly counted', () => {
 	const events: Events = [
 		{ type: 'cursor', timestamp: 0 },
-		{ type: 'grandma', timestamp: 1000 }
+		{ type: 'grandma', timestamp: 2000 }
 	];
 
-	expect(getProductionAtTime(events, 0)).toBe(0);
-	expect(getProductionAtTime(events, 1000)).toBe(0.1);
-	expect(getProductionAtTime(events, 1500)).toBe(0.65);
-	expect(getProductionAtTime(events, 15000)).toBe(15.5);
+	const initialState = { count: 500, rate: 0, countTimestamp: 0, events: [] };
+	const afterFirstEvent = calculateNewState(initialState, events[0]);
+	expect(afterFirstEvent.events).toStrictEqual([events[0]]);
+	expect(afterFirstEvent.count).toBe(485);
+	expect(afterFirstEvent.rate).toBe(0.1);
+
+	const afterSecondEvent = calculateNewState(afterFirstEvent, events[1]);
+	expect(afterSecondEvent.count).toBe(385.2);
+	expect(afterSecondEvent.rate).toBe(1.1);
 });
 
 test('base costs are as expected', () => {
@@ -119,6 +126,7 @@ test('costs are increasing are as expected', () => {
 	});
 });
 
+/*
 test('events are validated by addEvent', () => {
 	const events: Events = [];
 	const result = addEvent(events, { type: 'cursor', timestamp: 0 });
@@ -138,3 +146,5 @@ test('events are validated by addEvent', () => {
 		newState: [...events, { type: 'cursor', timestamp: 1000 }]
 	});
 });
+
+*/

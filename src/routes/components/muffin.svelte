@@ -4,17 +4,13 @@
 	const { onCountUpdate } = $props<{ onCountUpdate: (nr: number) => void }>();
 
 	import {
-		getCountAtTime,
 		type EventType,
-		type Events,
 		nonClickEventTypes,
 		getCost,
 		AddEventResponseSchema,
 		clicksPerSecond,
 		eventTypes,
-		type NonClickEvent,
-		type NonClickEventType,
-		addEvent
+		calculateNewState
 	} from '../../model/farmerState';
 	import * as R from 'remeda';
 	import { UserResponseSchema, type UserResponse } from './../api/events/types';
@@ -54,14 +50,16 @@
 	}, resolution);
 
 	const countInfo = $derived.by(() => {
-		const events = $userState.data?.events ?? [];
+		timer;
 		if (!$userState.data) return null;
-		const currentCount = getCountAtTime(events, timer);
-		const count10SecondsAgo = getCountAtTime(events, timer - 1000);
+
+		const state = $userState.data.state;
 
 		return {
-			totalCurrentCount: Math.floor(currentCount),
-			rate: currentCount - count10SecondsAgo
+			totalCurrentCount: Math.floor(
+				state.count + ((getCurrentTimestamp() - state.countTimestamp) / 1000) * state.rate
+			),
+			rate: state.rate
 		};
 	});
 
@@ -73,6 +71,12 @@
 			return;
 		}
 
+		const cachedNewState = calculateNewState($userState.data.state, {
+			timestamp: new Date().getTime(),
+			type: eventType
+		});
+		queryClient.setQueryData(userStateKey, { ...$userState.data, state: cachedNewState });
+
 		const result = await fetch('/api/events', {
 			method: 'PUT',
 			body: JSON.stringify({ eventType: eventType }),
@@ -83,7 +87,8 @@
 
 		switch (result.type) {
 			case 'success':
-				queryClient.setQueryData(userStateKey, { ...$userState.data, events: result.newState });
+				// only update this if it's the latest one?'
+				//queryClient.setQueryData(userStateKey, { ...$userState.data, state: result.newState });
 				break;
 			case 'failure':
 				notificationsStore.danger(result.error, 1000);
@@ -92,7 +97,7 @@
 	};
 
 	const getEventTypeCount = (eventType: EventType) =>
-		$userState.data?.events.filter((x) => x.type === eventType).length ?? 0;
+		$userState.data?.state.events.filter((x) => x.type === eventType).length ?? 0;
 
 	const derivedCounts = $derived(
 		R.mapToObj(eventTypes, (eventType) => [eventType, getEventTypeCount(eventType)] as const)

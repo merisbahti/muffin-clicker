@@ -1,8 +1,14 @@
 import db from '$lib/server/client';
 import type { UnwrapPromise } from '@prisma/client/runtime/library';
-import { addEvent, eventTypesSchema, type AddEventResponse } from '../../../model/farmerState';
+import {
+	eventTypesSchema,
+	foldEvents,
+	calculateNewState,
+	type MuffinEvent
+} from '../../../model/farmerState';
 import { z } from 'zod';
 import type { UserResponse } from './types';
+import type { AddEventResponse } from '../../../model/farmerState';
 
 export type EventsResponse = UnwrapPromise<ReturnType<typeof db.event.findMany>>;
 
@@ -29,10 +35,12 @@ const getOrCreateUser = async (
 
 	const formatUserResponse: UserResponse = {
 		id: uniqueUser.id,
-		events: uniqueUser.events.map((event) => ({
-			timestamp: event.timestamp.getTime(),
-			type: eventTypesSchema.parse(event.type)
-		}))
+		state: foldEvents(
+			uniqueUser.events.map((event) => ({
+				timestamp: event.timestamp.getTime(),
+				type: eventTypesSchema.parse(event.type)
+			}))
+		)
 	};
 
 	return formatUserResponse;
@@ -58,35 +66,24 @@ export async function PUT(context: { request: Request }) {
 	const result: AddEventResponse = await db.$transaction(async (client) => {
 		const user = await getOrCreateUser(userId, client);
 
-		const currentEvents = user.events;
+		const currentState = user.state;
 
-		const eventsResult = addEvent(currentEvents, { type: json.eventType, timestamp });
-
-		if (eventsResult.type === 'failure') {
-			throw eventsResult;
-		}
-
-		const latestEvent = eventsResult.newState.at(-1);
-
-		if (!latestEvent) {
-			const eventsResult: AddEventResponse = { type: 'failure', error: 'No latest event' };
-			throw eventsResult;
-		}
+		const newEvent: MuffinEvent = { timestamp, type: json.eventType };
+		const newState = calculateNewState(currentState, newEvent);
 
 		try {
 			await client.event.create({
 				data: {
-					timestamp: new Date(latestEvent.timestamp),
-					type: latestEvent.type,
+					timestamp: new Date(newEvent.timestamp),
+					type: newEvent.type,
 					userId: user.id
 				}
 			});
+			return { type: 'success' as const, newState };
 		} catch (e) {
 			const eventsResult: AddEventResponse = { type: 'failure', error: 'Failed creating event' };
 			throw eventsResult;
 		}
-
-		return eventsResult;
 	});
 
 	return new Response(JSON.stringify(result), {

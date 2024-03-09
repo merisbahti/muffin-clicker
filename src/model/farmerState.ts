@@ -32,6 +32,56 @@ export const MuffinEventSchema = z.object({
 });
 export type MuffinEvent = z.TypeOf<typeof MuffinEventSchema>;
 
+export const MuffinStateSchema = z.object({
+	count: z.number(),
+	rate: z.number(),
+	countTimestamp: z.number(),
+	events: z.array(MuffinEventSchema)
+});
+
+export type MuffinState = z.TypeOf<typeof MuffinStateSchema>;
+
+export const calculateNewState = (oldState: MuffinState, event: MuffinEvent): MuffinState => {
+	const timeDelta = event.timestamp - oldState.countTimestamp;
+	const countBeforePurchase = oldState.count + oldState.rate * (timeDelta / 1000);
+	const events = [...oldState.events, event];
+
+	if (event.type === 'click')
+		return {
+			count: countBeforePurchase + 1,
+			rate: oldState.rate,
+			countTimestamp: event.timestamp,
+			events: [...oldState.events, event]
+		};
+
+	const rate = oldState.rate + clicksPerSecond[event.type];
+
+	const eventCost = getCost(
+		event.type,
+		oldState.events.filter((x) => x.type === event.type).length
+	);
+
+	if (countBeforePurchase >= eventCost) {
+		const count = countBeforePurchase - eventCost;
+		return {
+			count,
+			rate,
+			countTimestamp: event.timestamp,
+			events
+		};
+	}
+	return {
+		...oldState,
+		events
+	};
+};
+
+const defaultInitialState: MuffinState = { count: 0, rate: 0, events: [], countTimestamp: 0 };
+export const foldEvents = (
+	events: Array<MuffinEvent>,
+	state: MuffinState = defaultInitialState
+): MuffinState => events.reduce(calculateNewState, state);
+
 export type NonClickEvent = {
 	type: NonClickEventType;
 	timestamp: number;
@@ -77,7 +127,7 @@ const costIncreaseFactor = 1.15;
 export const AddEventResponseSchema = z.union([
 	z.object({
 		type: z.literal('success'),
-		newState: z.array(MuffinEventSchema)
+		newState: MuffinStateSchema
 	}),
 	z.object({
 		type: z.literal('failure'),
@@ -86,24 +136,6 @@ export const AddEventResponseSchema = z.union([
 ]);
 
 export type AddEventResponse = z.infer<typeof AddEventResponseSchema>;
-export const addEvent = (state: Events, event: MuffinEvent): AddEventResponse => {
-	if (nonClickEventTypes.includes(event.type as NonClickEventType)) {
-		// validate cost
-		const cost = getCost(
-			event.type as NonClickEventType,
-			state.filter((x) => x.type === event.type).length
-		);
-		const currentValue = getCountAtTime(state, event.timestamp);
-		if (currentValue < cost) {
-			return {
-				type: 'failure',
-				error: `Not enough clicks (you have ${Math.floor(currentValue)}, and need ${cost})`
-			};
-		}
-	}
-
-	return { type: 'success', newState: [...state, event] };
-};
 
 export const getCosts = (state: Events): { [type in NonClickEventType]: number } => {
 	const counts = R.mapValues(
@@ -123,23 +155,4 @@ export const getCostsAtTime = (events: Events) => {
 		R.reduce((a, b) => a + b, 0)
 	);
 	return autoClickerCosts;
-};
-
-export const getProductionAtTime = (events: Events, currentTime: number): number => {
-	const clickCount = events.filter(
-		(event) => event.type === 'click' && event.timestamp < currentTime
-	).length;
-
-	const autoClickerclicks = R.pipe(
-		events,
-		R.filter((x) => nonClickEventTypes.includes(x.type as NonClickEventType)),
-		R.map(({ timestamp, type }) =>
-			Math.max(((currentTime - timestamp) / 1000) * clicksPerSecond[type], 0)
-		)
-	).reduce((a, b) => a + b, 0);
-	return clickCount + autoClickerclicks;
-};
-
-export const getCountAtTime = (state: Events, currentTime: number): number => {
-	return getProductionAtTime(state, currentTime) - getCostsAtTime(state);
 };
